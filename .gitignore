@@ -1,0 +1,65 @@
+# ===== COMPILED OUTPUT =====
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ===== MAVEN =====
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ===== IDE FILES =====
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# VS Code / Antigravity
+.vscode/
+.antigravity/
+*.code-workspace
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ===== SPRING BOOT =====
+application-local.properties
+application-prod.properties
+
+# ===== SENSITIVE CONFIG =====
+# Never push real credentials
+src/main/resources/application-secret.properties
+
+# ===== LOGS =====
+logs/
+*.log
+*.log.*
+
+# ===== REDIS DUMP =====
+dump.rdb
+
+# ===== OS FILES =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== NODE (if any frontend build) =====
+node_modules/
+npm-debug.log
+
+# ===== COVERAGE REPORTS =====
+# Keep JaCoCo config but not generated reports
+target/site/
+
+# ===== REDIS BINARIES =====
+Redis/
+Redis.zip

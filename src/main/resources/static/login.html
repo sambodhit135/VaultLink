@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VaultLink - Login</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .auth-bg {
+            background: linear-gradient(135deg, var(--bg), #E3F2FD);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            border: none;
+        }
+        .password-container {
+            position: relative;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .vault-brand {
+            color: var(--primary);
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .vault-tagline {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="auth-bg">
+
+    <div id="alertContainer"></div>
+
+    <div class="auth-card">
+        <div class="vault-brand">
+            <i class="fa-solid fa-vault"></i> VaultLink
+        </div>
+        <div class="vault-tagline">Secure Document Vault</div>
+
+        <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+            <div class="mb-3">
+                <label for="loginEmail" class="form-label">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-envelope text-muted"></i></span>
+                    <input type="email" class="form-control vault-input border-start-0 ps-0" id="loginEmail" placeholder="name@example.com" required>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label for="loginPassword" class="form-label">Password</label>
+                <div class="password-container">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-lock text-muted"></i></span>
+                        <input type="password" class="form-control vault-input border-start-0 ps-0" id="loginPassword" placeholder="Enter your password" required>
+                    </div>
+                    <i class="fa-solid fa-eye password-toggle" id="togglePassword" onclick="togglePasswordVisibility()"></i>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-vaultlink w-100 py-2 mb-3" id="loginBtn">
+                <span id="loginBtnText">Login</span>
+                <span id="loginBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+            </button>
+
+            <div class="text-center mt-3">
+                <span class="text-muted-custom">Don't have an account?</span> 
+                <a href="/register.html" class="text-decoration-none" style="color: var(--primary); font-weight: 600;">Register here</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS Utilities & API -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    
+    <script>
+        // Redirect to dashboard if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isLoggedIn()) {
+                window.location.href = '/dashboard.html';
+            }
+        });
+
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('loginPassword');
+            const toggleIcon = document.getElementById('togglePassword');
+            
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                pwdInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Handle Login Submission
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('loginBtnText');
+            const spinner = document.getElementById('loginBtnSpinner');
+
+            // Basic Validation
+            if (!email || !password) {
+                showAlert('Please enter both email and password.', 'warning');
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showAlert('Please enter a valid email address.', 'warning');
+                return;
+            }
+
+            // UI Loading state
+            btn.disabled = true;
+            btnText.textContent = 'Authenticating... ';
+            spinner.classList.remove('d-none');
+
+            try {
+                // Call API from api.js
+                const response = await login(email, password);
+                
+                // If login returns token, auth is successful
+                if (response && response.token) {
+                    setToken(response.token);
+                    
+                    const firstName = response.firstName || (response.user && response.user.firstName) || "User";
+                    const lastName = response.lastName || (response.user && response.user.lastName) || "";
+                    const userEmail = response.email || (response.user && response.user.email) || email;
+                    
+                    localStorage.setItem('userName', firstName);
+                    localStorage.setItem('userFirstName', firstName);
+                    localStorage.setItem('userLastName', lastName);
+                    localStorage.setItem('userEmail', userEmail);
+                    localStorage.setItem('memberSince', new Date().toLocaleDateString('en-IN'));
+                    
+                    window.location.href = 'dashboard.html';
+                } else {
+                    throw new Error("Invalid response from server");
+                }
+            } catch (error) {
+                console.error("Login failed:", error);
+                
+                // Extract error message
+                let errorMsg = 'Invalid email or password. Please try again.';
+                if (error.message) errorMsg = error.message;
+                
+                showAlert(errorMsg, 'danger');
+                
+                // Reset UI state
+                btn.disabled = false;
+                btnText.textContent = 'Login';
+                spinner.classList.add('d-none');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VaultLink - My Documents</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .filter-row {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+        }
+        
+        .progress-urgency {
+            height: 8px;
+            border-radius: 4px;
+            background-color: var(--border);
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-urgency {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .card-actions {
+            border-top: 1px solid var(--border);
+            margin-top: 20px;
+            padding-top: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .card-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .card-action-btn:hover {
+            background-color: rgba(0,0,0,0.05);
+            color: var(--primary);
+        }
+        .card-action-btn.delete:hover {
+            color: var(--critical);
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+        
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .search-icon-wrapper {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        .search-input {
+            padding-left: 40px;
+        }
+        
+        .share-link-box {
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            word-break: break-all;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-vaultlink fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard.html"><i class="fa-solid fa-vault"></i> VaultLink</a>
+            
+            <div class="ms-auto d-flex align-items-center">
+                <span class="text-white me-3 d-none d-md-block">Hello, <span id="navUserName">User</span></span>
+                <button class="btn btn-sm btn-outline-light" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar d-none d-md-block">
+        <a href="/dashboard.html" class="sidebar-item">
+            <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </a>
+        <a href="/documents.html" class="sidebar-item active">
+            <i class="fa-solid fa-folder-open"></i> My Documents
+        </a>
+        <a href="/add-document.html" class="sidebar-item">
+            <i class="fa-solid fa-file-circle-plus"></i> Add Document
+        </a>
+        <a href="/notifications.html" class="sidebar-item">
+            <i class="fa-solid fa-bell"></i> Notifications
+        </a>
+        <a href="/profile.html" class="sidebar-item">
+            <i class="fa-solid fa-user-gear"></i> Profile
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div id="alertContainer"></div>
+
+        <!-- Header Section -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">
+                    📂 My Document Vault
+                </h1>
+                <p class="section-title mb-0">
+                    Manage and organize all your secure files
+                </p>
+            </div>
+            <a href="/add-document.html" class="btn btn-vaultlink">
+                <i class="fa-solid fa-plus me-1"></i> Add Document
+            </a>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filter-row">
+            <div class="row g-3">
+                <div class="col-md-4 position-relative">
+                    <i class="fa-solid fa-search search-icon-wrapper"></i>
+                    <input type="text" class="form-control vault-input search-input" id="searchInput" placeholder="Search documents...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select vault-input" id="statusFilter">
+                        <option value="ALL">All Statuses</option>
+                        <option value="CRITICAL">Critical</option>
+                        <option value="WARNING">Warning</option>
+                        <option value="SAFE">Safe</option>
+                        <option value="EXPIRED">Expired</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select vault-input" id="categoryFilter">
+                        <option value="ALL">All Categories</option>
+                        <!-- Categories injected here -->
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select vault-input" id="sortBy">
+                        <option value="EXPIRY_ASC">Expiry: Soonest</option>
+                        <option value="EXPIRY_DESC">Expiry: Latest</option>
+                        <option value="NAME_ASC">Name: A-Z</option>
+                        <option value="DATE_DESC">Date Added: Newest</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Grid -->
+        <div id="documentGrid" class="row g-4">
+            <!-- Cards injected here -->
+        </div>
+        
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state d-none">
+            <img src="https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/folder-open.svg" style="height: 80px; opacity: 0.2; margin-bottom: 20px;" alt="Empty Vault">
+            <h4 class="text-secondary">No documents found.</h4>
+            <p class="text-muted">You haven't uploaded any documents that match your filters.</p>
+            <a href="/add-document.html" class="btn btn-vaultlink mt-2"><i class="fa-solid fa-plus me-2"></i>Add your first document</a>
+        </div>
+
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa-solid fa-share-nodes text-primary me-2"></i> Share Document</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="shareForm" onsubmit="event.preventDefault(); submitShare();">
+                        <input type="hidden" id="shareDocId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Share with Email</label>
+                            <input type="email" class="form-control vault-input" id="shareEmail" placeholder="colleague@example.com" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Link Expiry</label>
+                            <select class="form-select vault-input" id="shareHours">
+                                <option value="24">24 Hours</option>
+                                <option value="48">48 Hours</option>
+                                <option value="72">72 Hours</option>
+                                <option value="168">1 Week</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-vaultlink w-100" id="shareBtn">
+                            Generate Share Link
+                        </button>
+                    </form>
+
+                    <div class="share-link-box" id="shareLinkContainer">
+                        <strong class="d-block mb-1 text-success"><i class="fa-solid fa-check-circle me-1"></i> Link Generated!</strong>
+                        <div class="d-flex">
+                            <input type="text" class="form-control form-control-sm me-2" id="shareLinkUrl" readonly>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="copyShareLink()"><i class="fa-solid fa-copy"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS Utilities & API -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    
+    <script>
+        // Global State
+        let allDocuments = [];
+        let shareModalObj = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!isLoggedIn()) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            document.getElementById('navUserName').textContent = getUserName();
+            shareModalObj = new bootstrap.Modal(document.getElementById('shareModal'));
+
+            // Setup listeners
+            document.getElementById('searchInput').addEventListener('input', filterDocuments);
+            document.getElementById('statusFilter').addEventListener('change', filterDocuments);
+            document.getElementById('categoryFilter').addEventListener('change', filterDocuments);
+            document.getElementById('sortBy').addEventListener('change', filterDocuments);
+
+            // Init Load
+            await loadCategories();
+            await fetchDocuments();
+            
+            // Check URL Params for pre-filtering (e.g., from Dashboard clicks)
+            const urlParams = new URLSearchParams(window.location.search);
+            const statusParam = urlParams.get('status');
+            const highlightParam = urlParams.get('highlight');
+            
+            if (statusParam) {
+                document.getElementById('statusFilter').value = statusParam;
+            }
+            if (highlightParam) {
+                // If a document was specifically clicked from dashboard, maybe pre-fill search with its name
+                // Or we can just let it render everything, but later highlight the card.
+            }
+            
+            filterDocuments();
+        });
+
+        // 1. Fetch data
+        async function fetchDocuments() {
+            showLoading(true);
+            try {
+                allDocuments = await getAllDocuments();
+            } catch (error) {
+                showAlert('Failed to load documents.', 'danger');
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const categories = await getAllCategories();
+                const catSelect = document.getElementById('categoryFilter');
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    catSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Failed to load categories", error);
+            }
+        }
+
+        // 2. Filter & Render
+        function filterDocuments() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const categoryId = document.getElementById('categoryFilter').value;
+            const sort = document.getElementById('sortBy').value;
+
+            // Apply Filters
+            let filtered = allDocuments.filter(doc => {
+                const matchSearch = doc.title.toLowerCase().includes(searchTerm) || 
+                                   (doc.description && doc.description.toLowerCase().includes(searchTerm));
+                
+                const matchStatus = status === 'ALL' || doc.documentStatus === status;
+                
+                const matchCategory = categoryId === 'ALL' || (doc.category && doc.category.id.toString() === categoryId);
+
+                return matchSearch && matchStatus && matchCategory;
+            });
+
+            // Apply Sort
+            filtered.sort((a, b) => {
+                if (sort === 'EXPIRY_ASC') return new Date(a.expiryDate) - new Date(b.expiryDate);
+                if (sort === 'EXPIRY_DESC') return new Date(b.expiryDate) - new Date(a.expiryDate);
+                if (sort === 'NAME_ASC') return a.title.localeCompare(b.title);
+                if (sort === 'DATE_DESC') return b.id - a.id; // Fallback to ID representing date added
+                return 0;
+            });
+
+            renderGrid(filtered);
+        }
+
+        function renderGrid(documents) {
+            const grid = document.getElementById('documentGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (documents.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('d-none');
+                return;
+            }
+
+            emptyState.classList.add('d-none');
+            
+            let html = '';
+            documents.forEach(doc => {
+                html += renderDocumentCard(doc);
+            });
+            grid.innerHTML = html;
+        }
+
+        function renderDocumentCard(doc) {
+            const statusClass = getStatusCardClass(doc.documentStatus);
+            const badge = getStatusBadge(doc.documentStatus);
+            const formattedDate = formatDate(doc.expiryDate);
+            const timeText = daysUntilText(doc.daysUntilExpiry);
+            const catName = doc.category ? doc.category.name : "Uncategorized";
+
+            // Progress bar calc
+            let pWidth = 100;
+            let pColor = 'var(--safe)';
+            
+            if (doc.daysUntilExpiry < 0) {
+                pWidth = 100; pColor = 'var(--expired)';
+            } else if (doc.daysUntilExpiry <= 7) {
+                pWidth = 100; pColor = 'var(--critical)';
+            } else if (doc.daysUntilExpiry <= 30) {
+                pWidth = 75; pColor = 'var(--warning)';
+            } else {
+                // E.g., maxing out visual at 100 days
+                pWidth = Math.max(10, 100 - (doc.daysUntilExpiry / 2)); 
+            }
+
+            return `
+                <div class="col-md-4 col-sm-6" id="doc-card-${doc.id}">
+                    <div class="vault-card ${statusClass} h-100 d-flex flex-column">
+                        
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge bg-light text-secondary border">${catName}</span>
+                            ${badge}
+                        </div>
+                        
+                        <h4 class="fw-bold mb-2 text-truncate" title="${doc.title}">${doc.title}</h4>
+                        <p class="text-muted small mb-3 text-truncate" title="${doc.description || ''}">${doc.description || 'No description provided.'}</p>
+                        
+                        <div class="mt-auto">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fa-regular fa-calendar text-primary me-2"></i>
+                                <span class="fw-medium">${formattedDate}</span>
+                            </div>
+                            
+                            <div class="d-flex align-items-center mt-2">
+                                <i class="fa-solid fa-hourglass-half text-secondary me-2"></i>
+                                <span class="fw-bold" style="color: ${pColor};">${timeText}</span>
+                            </div>
+
+                            <div class="progress-urgency">
+                                <div class="progress-bar-urgency" style="width: ${pWidth}%; background-color: ${pColor};"></div>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="card-action-btn" title="Edit" onclick="editDocument(${doc.id})">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="card-action-btn" title="Share" onclick="openShareModal(${doc.id})">
+                                <i class="fa-solid fa-share-nodes"></i>
+                            </button>
+                            <button class="card-action-btn delete" title="Delete" onclick="handleDelete(${doc.id})">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 3. Actions
+        function editDocument(id) {
+            window.location.href = "add-document.html?id=" + id;
+        }
+
+        async function handleDelete(id) {
+            if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) {
+                return;
+            }
+
+            try {
+                showLoading(true);
+                await deleteDocument(id);
+                showAlert("Document deleted successfully.", "success");
+                
+                // Remove from state and re-render
+                allDocuments = allDocuments.filter(d => d.id !== id);
+                filterDocuments();
+            } catch (error) {
+                showAlert("Failed to delete document.", "danger");
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 4. Share Modal Logic
+        function openShareModal(id) {
+            document.getElementById('shareDocId').value = id;
+            document.getElementById('shareEmail').value = '';
+            document.getElementById('shareHours').value = '24';
+            document.getElementById('shareLinkContainer').style.display = 'none';
+            document.getElementById('shareBtn').disabled = false;
+            document.getElementById('shareBtn').textContent = 'Generate Share Link';
+            
+            shareModalObj.show();
+        }
+
+        async function submitShare() {
+            const id = document.getElementById('shareDocId').value;
+            const email = document.getElementById('shareEmail').value;
+            const hours = document.getElementById('shareHours').value;
+            const btn = document.getElementById('shareBtn');
+
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                const response = await shareDocument(id, email, hours);
+                
+                // Show link
+                const shareUrl = window.location.origin + "/share.html?token=" + response.token;
+                document.getElementById('shareLinkUrl').value = shareUrl;
+                document.getElementById('shareLinkContainer').style.display = 'block';
+                
+                showAlert("Share link generated!", "success");
+            } catch (error) {
+                showAlert("Failed to generate share link.", "danger");
+                console.error(error);
+                btn.disabled = false;
+                btn.textContent = 'Generate Share Link';
+            }
+        }
+
+        function copyShareLink() {
+            const input = document.getElementById('shareLinkUrl');
+            input.select();
+            input.setSelectionRange(0, 99999); // For mobile devices
+            navigator.clipboard.writeText(input.value);
+            showAlert("Link copied to clipboard!", "info");
+        }
+    </script>
+</body>
+</html>

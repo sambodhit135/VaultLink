@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VaultLink - Document Manager</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .form-card {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .live-preview-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--border);
+            background-color: var(--bg);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .preview-safe { border-left-color: var(--safe); background-color: rgba(76, 175, 80, 0.05); }
+        .preview-warning { border-left-color: var(--warning); background-color: rgba(255, 152, 0, 0.05); }
+        .preview-critical { border-left-color: var(--critical); background-color: rgba(244, 67, 54, 0.05); }
+        .preview-expired { border-left-color: var(--expired); background-color: rgba(183, 28, 28, 0.05); }
+
+        .category-add-form {
+            background-color: var(--bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px dashed var(--primary);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-vaultlink fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard.html"><i class="fa-solid fa-vault"></i> VaultLink</a>
+            
+            <div class="ms-auto d-flex align-items-center">
+                <span class="text-white me-3 d-none d-md-block">Hello, <span id="navUserName">User</span></span>
+                <button class="btn btn-sm btn-outline-light" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar d-none d-md-block">
+        <a href="/dashboard.html" class="sidebar-item">
+            <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </a>
+        <a href="/documents.html" class="sidebar-item">
+            <i class="fa-solid fa-folder-open"></i> My Documents
+        </a>
+        <a href="/add-document.html" class="sidebar-item active">
+            <i class="fa-solid fa-file-circle-plus"></i> <span id="sidebarMenuText">Add Document</span>
+        </a>
+        <a href="/notifications.html" class="sidebar-item">
+            <i class="fa-solid fa-bell"></i> Notifications
+        </a>
+        <a href="/profile.html" class="sidebar-item">
+            <i class="fa-solid fa-user-gear"></i> Profile
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div id="alertContainer"></div>
+
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" id="pageHeader">
+                    📄 Add New Document
+                </h1>
+                <p class="section-title mb-0">
+                    Upload and secure a new credential or file reference
+                </p>
+            </div>
+        </div>
+
+        <div class="form-card mt-3">
+            
+            <form id="documentForm" onsubmit="event.preventDefault(); handleSave();">
+                
+                <div class="mb-3">
+                    <label for="docTitle" class="form-label">Document Title <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control vault-input" id="docTitle" placeholder="e.g. Passport, Driving License" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="docCategory" class="form-label">Category <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <select class="form-select vault-input" id="docCategory" required>
+                            <option value="" disabled selected>Select a category...</option>
+                            <!-- Categories injected here -->
+                        </select>
+                        <button class="btn btn-outline-primary" type="button" onclick="toggleCategoryForm()" title="Create New Category">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Inline Category Form -->
+                <div class="category-add-form" id="categoryFormBox">
+                    <h6 class="mb-2 text-primary fw-bold"><i class="fa-solid fa-folder-plus me-1"></i> Add New Category</h6>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control form-control-sm" id="newCatName" placeholder="Category Name">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="text" class="form-control form-control-sm" id="newCatDesc" placeholder="Description (opt)">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="handleCreateCategory()">Add</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3 mt-3">
+                    <label for="docDescription" class="form-label">Description (Optional)</label>
+                    <textarea class="form-control vault-input" id="docDescription" rows="2" placeholder="Any additional notes..."></textarea>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="issueDate" class="form-label">Issue Date (Optional)</label>
+                        <input type="date" class="form-control vault-input" id="issueDate">
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <label for="expiryDate" class="form-label">Expiry Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control vault-input" id="expiryDate" required onchange="updateLivePreview()">
+                    </div>
+                </div>
+
+                <!-- Live Preview Box -->
+                <div class="live-preview-box d-none" id="livePreviewBox">
+                    <div>
+                        <strong class="d-block mb-1" style="font-size: 0.9rem;">Urgency Preview</strong>
+                        <span id="previewText" class="fw-bold fs-5"></span>
+                    </div>
+                    <div id="previewBadge"></div>
+                </div>
+
+                <div class="mb-4 mt-3">
+                    <label for="filePath" class="form-label">File Reference (Optional)</label>
+                    <input type="text" class="form-control vault-input" id="filePath" placeholder="e.g. Google Drive link, physical location, etc.">
+                </div>
+
+                <hr class="mb-4">
+
+                <div class="d-flex justify-content-between gap-3">
+                    <button type="button" class="btn btn-light w-50" onclick="window.location.href='/documents.html'">Cancel</button>
+                    <button type="submit" class="btn btn-vaultlink w-50" id="saveBtn">
+                        <span id="saveBtnText">Save Document</span>
+                        <span id="saveBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS Utilities & API -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/api.js"></script>
+    
+    <script>
+        let editModeId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!isLoggedIn()) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            document.getElementById('navUserName').textContent = getUserName();
+            
+            // Set min date for expiry (today) to prevent HTML5 selection of past dates natively
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('expiryDate').setAttribute('min', todayStr);
+
+            showLoading(true);
+            await loadCategories();
+
+            // Check URL for edit mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const idParam = urlParams.get('id');
+
+            if (idParam) {
+                editModeId = idParam;
+                document.getElementById('pageHeader').textContent = "Edit Document";
+                document.getElementById('sidebarMenuText').textContent = "Edit Document";
+                await populateFormForEdit(editModeId);
+            }
+
+            showLoading(false);
+        });
+
+        // 1. Categories
+        async function loadCategories(selectId = null) {
+            try {
+                console.log("Loading categories...");
+                
+                // Call API without auth header since 
+                // GET /api/categories is public
+                const response = await fetch(
+                    'http://localhost:8080/api/categories', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log("Category API status:", 
+                    response.status);
+                
+                if (!response.ok) {
+                    throw new Error('API returned: ' 
+                        + response.status);
+                }
+                
+                const categories = await response.json();
+                console.log("Categories received:", categories);
+                
+                const dropdown = document.getElementById(
+                    'docCategory');
+                
+                // Clear existing options
+                dropdown.innerHTML = 
+                    '<option value="">Select a category...</option>';
+                
+                // Check if categories is array directly 
+                // or wrapped in response object
+                let categoryList = categories;
+                if (categories.data) {
+                    categoryList = categories.data;
+                }
+                
+                if (!categoryList || categoryList.length === 0) {
+                    dropdown.innerHTML += 
+                        '<option disabled>No categories found' + 
+                        ' - add one first</option>';
+                    console.warn("No categories in response");
+                    return;
+                }
+                
+                // Populate dropdown
+                categoryList.forEach(cat => {
+                    const option = 
+                        document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = cat.name;
+                    dropdown.appendChild(option);
+                    console.log("Added category:", cat.name);
+                });
+                
+                if (selectId) {
+                    dropdown.value = selectId;
+                }
+                
+                console.log("Categories loaded successfully:", 
+                    categoryList.length);
+                    
+            } catch (error) {
+                console.error("Failed to load categories:", 
+                    error);
+                
+                // Show error in dropdown
+                const dropdown = document.getElementById(
+                    'docCategory');
+                dropdown.innerHTML = 
+                    '<option value="">Error loading' + 
+                    ' categories</option>';
+                    
+                // Show user-friendly message
+                showAlert(
+                    'Failed to load categories. ' + 
+                    'Please refresh the page.', 
+                    'danger'
+                );
+            }
+        }
+
+        function toggleCategoryForm() {
+            const formBox = document.getElementById('categoryFormBox');
+            if (formBox.style.display === 'block') {
+                formBox.style.display = 'none';
+            } else {
+                formBox.style.display = 'block';
+                document.getElementById('newCatName').focus();
+            }
+        }
+
+        async function handleCreateCategory() {
+            const name = document.getElementById('newCatName').value.trim();
+            const desc = document.getElementById('newCatDesc').value.trim();
+
+            if (!name) {
+                showAlert("Category name is required.", "warning");
+                return;
+            }
+
+            try {
+                const newCat = await createCategory(name, desc);
+                showAlert("Category created successfully!", "success");
+                
+                // Reload categories and select the new one
+                await loadCategories(newCat.id);
+                
+                // Clean up UI
+                document.getElementById('newCatName').value = '';
+                document.getElementById('newCatDesc').value = '';
+                document.getElementById('categoryFormBox').style.display = 'none';
+            } catch (error) {
+                showAlert("Failed to create category.", "danger");
+                console.error(error);
+            }
+        }
+
+        // 2. Edit Mode Initialization
+        async function populateFormForEdit(id) {
+            try {
+                const doc = await getDocument(id);
+                
+                document.getElementById('docTitle').value = doc.title;
+                if (doc.category) {
+                    document.getElementById('docCategory').value = doc.category.id;
+                }
+                document.getElementById('docDescription').value = doc.description || '';
+                
+                if (doc.issueDate) {
+                    // Extract YYYY-MM-DD from ISO string
+                    document.getElementById('issueDate').value = doc.issueDate.split('T')[0];
+                }
+                
+                if (doc.expiryDate) {
+                    document.getElementById('expiryDate').value = doc.expiryDate.split('T')[0];
+                    updateLivePreview(); // trigger the preview UI manually
+                }
+                
+                document.getElementById('filePath').value = doc.filePath || '';
+
+            } catch (error) {
+                showAlert("Failed to load document for editing.", "danger");
+                console.error(error);
+            }
+        }
+
+        // 3. Live Preview Logic
+        function updateLivePreview() {
+            const expiryInput = document.getElementById('expiryDate').value;
+            const previewBox = document.getElementById('livePreviewBox');
+            
+            if (!expiryInput) {
+                previewBox.classList.add('d-none');
+                return;
+            }
+
+            // Calculate days diff (ignoring time)
+            const expiryDate = new Date(expiryInput);
+            expiryDate.setHours(0,0,0,0);
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const diffTime = expiryDate - today;
+            const daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            previewBox.classList.remove('d-none', 'preview-safe', 'preview-warning', 'preview-critical', 'preview-expired');
+
+            const previewText = document.getElementById('previewText');
+            const previewBadge = document.getElementById('previewBadge');
+
+            previewText.textContent = daysUntilText(daysUntilExpiry);
+
+            if (daysUntilExpiry < 0) {
+                previewBox.classList.add('preview-expired');
+                previewText.style.color = 'var(--expired)';
+                previewBadge.innerHTML = '<span class="badge badge-expired">Expired</span>';
+            } else if (daysUntilExpiry <= 7) {
+                previewBox.classList.add('preview-critical');
+                previewText.style.color = 'var(--critical)';
+                previewBadge.innerHTML = '<span class="badge badge-critical">Critical</span>';
+            } else if (daysUntilExpiry <= 30) {
+                previewBox.classList.add('preview-warning');
+                previewText.style.color = 'var(--warning)';
+                previewBadge.innerHTML = '<span class="badge badge-warning">Warning</span>';
+            } else {
+                previewBox.classList.add('preview-safe');
+                previewText.style.color = 'var(--safe)';
+                previewBadge.innerHTML = '<span class="badge badge-safe">Safe</span>';
+            }
+        }
+
+        // 4. Save/Update Handler
+        async function handleSave() {
+            const title = document.getElementById('docTitle').value.trim();
+            const categoryId = document.getElementById('docCategory').value;
+            const description = document.getElementById('docDescription').value.trim();
+            const issueDate = document.getElementById('issueDate').value;
+            const expiryDate = document.getElementById('expiryDate').value;
+            const filePath = document.getElementById('filePath').value.trim();
+
+            if (!title || !categoryId || !expiryDate) {
+                showAlert('Title, Category, and Expiry Date are required.', 'warning');
+                return;
+            }
+
+            // Client-side past date check
+            const exp = new Date(expiryDate);
+            exp.setHours(0,0,0,0);
+            const tdy = new Date();
+            tdy.setHours(0,0,0,0);
+            
+            if (exp < tdy) {
+                showAlert('Expiry Date cannot be in the past.', 'warning');
+                return;
+            }
+
+            const payload = {
+                title: title,
+                categoryId: parseInt(categoryId),
+                description: description || null,
+                issueDate: issueDate || null,
+                expiryDate: expiryDate,
+                filePath: filePath || null
+            };
+
+            const btn = document.getElementById('saveBtn');
+            const btnText = document.getElementById('saveBtnText');
+            const spinner = document.getElementById('saveBtnSpinner');
+
+            btn.disabled = true;
+            btnText.textContent = 'Saving... ';
+            spinner.classList.remove('d-none');
+
+            try {
+                if (editModeId) {
+                    await updateDocument(editModeId, payload);
+                    showAlert("Document updated successfully!", "success");
+                } else {
+                    await createDocument(payload);
+                    showAlert("Document created successfully!", "success");
+                }
+
+                setTimeout(() => {
+                    window.location.href = '/documents.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error("Save failed:", error);
+                let errorMsg = 'Failed to save document.';
+                if (error.message) errorMsg = error.message;
+                showAlert(errorMsg, 'danger');
+                
+                btn.disabled = false;
+                btnText.textContent = 'Save Document';
+                spinner.classList.add('d-none');
+            }
+        }
+    </script>
+</body>
+</html>
